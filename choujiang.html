@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手机尾号抽奖系统</title>
+    <title>第五届湾区元宇宙大会</title>
     <style>
         * {
             margin: 0;
@@ -35,6 +35,21 @@
         header {
             text-align: center;
             margin-bottom: 30px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-container {
+            margin-right: 20px;
+        }
+        
+        .logo-container img {
+            max-width: 150px;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
         
         h1 {
@@ -45,6 +60,7 @@
             background-clip: text;
             color: transparent;
             text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            margin: 0;
         }
         
         .description {
@@ -57,17 +73,12 @@
         
         .content {
             display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
+            justify-content: center;
             margin-bottom: 30px;
         }
         
         .input-section {
-            flex: 1;
-            min-width: 350px;
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 15px;
+            display: none;
         }
         
         .input-group {
@@ -181,8 +192,8 @@
         }
         
         .result-section {
-            flex: 1;
-            min-width: 350px;
+            width: 100%;
+            max-width: 800px;
             display: flex;
             flex-direction: column;
         }
@@ -335,8 +346,10 @@
 <body>
     <div class="container">
         <header>
-            <h1>📱 手机尾号抽奖系统</h1>
-            <p class="description">输入参与抽奖的手机尾号列表，设置要抽取的数量，点击"开始抽奖"按钮随机抽取幸运尾号。支持4位手机尾号格式，如：1234、5678等。</p>
+            <div class="logo-container">
+                <img src="./logo.png" alt="第五届湾区元宇宙大会Logo">
+            </div>
+            <h1>第五届湾区元宇宙大会</h1>
         </header>
         
         <div class="content">
@@ -459,7 +472,7 @@
             }
             
             if (isNaN(m) || m < 1 || m > 100) {
-                alert('抽取数量(m)必须是1-100之间的整数');
+                alert('抽取数量必须是1-100之间的整数');
                 drawCountInput.focus();
                 return false;
             }
@@ -536,10 +549,8 @@
                 
 
                 
-                // 每5个号码中的一个添加高亮效果
-                if (parseInt(number) % 5 === 0) {
-                    numberElement.classList.add('highlight');
-                }
+                // 所有抽中的号码都添加高亮效果
+                numberElement.classList.add('highlight');
                 
                 numberElement.appendChild(phoneIcon);
                 numberElement.appendChild(numberText);
@@ -783,26 +794,27 @@
         
         // 页面加载时初始化
         window.addEventListener('load', () => {
-            // 生成随机的800个不重复手机尾号
-            const defaultNumbers = [];
-            const totalNumbers = 800;
-            const maxNumber = 9999;
+            const defaultNumbers = [
+                // 示例号码：用户可以在这里添加/修改所有号码
+                "1234", "5678", "9012", "3456", "7890",
+                "2345", "6789", "0123", "4567", "8901",
+                "1111", "2222", "3333", "4444", "5555",
+                "6666", "7777", "8888", "9999", "0000",
+                "1357", "2468", "1593", "2684", "3579",
+                "1470", "2580", "3690", "4561", "7892",
+                "3210", "6543", "9876", "3141", "5926",
+                "5358", "9793", "2358", "1618", "2718",
+                "3142", "5772", "1212", "3434", "5656",
+                "7878", "9090", "1313", "2424", "3535",
+                "4646", "5757", "6868", "7979", "8080",
+                "1248", "2496", "3624", "4832", "5040",
+                "6248", "7456", "8664", "9872", "1080",
+                "2160", "3240", "4320", "5400", "6480"
+            ];
             
-            // 使用Set确保唯一性
-            const uniqueNumbers = new Set();
-            
-            while (uniqueNumbers.size < totalNumbers) {
-                // 生成0-9999的随机数
-                const randomNum = Math.floor(Math.random() * (maxNumber + 1));
-                // 格式化为4位数字，前面补0
-                const formattedNum = randomNum.toString().padStart(4, '0');
-                uniqueNumbers.add(formattedNum);
-            }
-            
-            // 将Set转换为数组
-            defaultNumbers.push(...uniqueNumbers);
-            
+            // 只使用用户定义的号码，不自动生成
             phoneNumbersInput.value = defaultNumbers.join('\n');
+            
             updateStats();
             
             // 初始显示
