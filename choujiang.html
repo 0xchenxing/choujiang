@@ -286,6 +286,7 @@
             background-color: rgba(255, 255, 255, 0.1);
             padding: 25px;
             border-radius: 15px;
+            display: none; /* 隐藏抽奖历史记录 */
         }
         
         .history-container {
@@ -318,6 +319,39 @@
             color: #b3e5fc;
         }
         
+        /* 图片展示区域样式 */
+        .images-section {
+            display: flex;
+            justify-content: center;
+            align-items: stretch;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .image-container {
+            flex: 1;
+            max-width: 450px;
+            min-width: 300px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            height: auto; /* 自动高度，根据图片比例调整 */
+        }
+
+        .image-container:hover {
+            transform: translateY(-5px);
+        }
+
+        .image-container img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            background-color: transparent;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -340,6 +374,17 @@
                 height: 80px;
                 font-size: 1.5rem;
             }
+            
+            /* 响应式设计 */
+            .images-section {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .image-container {
+                max-width: 100%;
+                min-width: auto;
+            }
         }
     </style>
 </head>
@@ -351,6 +396,16 @@
             </div>
             <h1>第五届湾区元宇宙大会</h1>
         </header>
+        
+        <!-- 图片展示区域 -->
+        <div class="images-section">
+            <div class="image-container">
+                <img src="./1.jpg" alt="大会图片1">
+            </div>
+            <div class="image-container">
+                <img src="./2.jpg" alt="大会图片2">
+            </div>
+        </div>
         
         <div class="content">
             <div class="input-section">
@@ -403,7 +458,7 @@
         </div>
         
         <footer>
-            <p>手机尾号抽奖系统 &copy; 2025 | 采用 Fisher-Yates 洗牌算法确保随机性 | 尾号格式: XXXX (4位数字)</p>
+            <p>第五届湾区元宇宙大会 &copy; 2025 | 采用 Fisher-Yates 洗牌算法确保随机性 | 尾号格式: XXXX (4位数字)</p>
         </footer>
     </div>
 
@@ -659,6 +714,11 @@
                 
                 // 更新统计信息
                 updateStats();
+                
+                // 抽奖结束后自动导出历史记录
+                setTimeout(() => {
+                    exportHistory();
+                }, 500);
                 
                 // 抽奖结束后恢复按钮状态，允许再次抽奖
                 drawButton.textContent = '🎯 开始抽奖';
