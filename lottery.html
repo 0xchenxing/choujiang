@@ -477,8 +477,9 @@
         
         // 初始化变量
         let drawHistory = [];
+        // 从localStorage读取数据，如果没有则使用默认值
+        let drawnNumbers = JSON.parse(localStorage.getItem('drawnNumbers')) || [];
         let allPhoneNumbers = [];
-        let drawnNumbers = []; // 用于跟踪已经抽过的号码
         
         // 解析输入的手机尾号
         function parsePhoneNumbers(input) {
@@ -709,6 +710,10 @@
                 const remainingNumbers = currentNumbers.filter(num => !results.includes(num));
                 phoneNumbersInput.value = remainingNumbers.join('\n');
                 
+                // 保存更新后的号码列表和已抽奖号码到localStorage
+                localStorage.setItem('phoneNumbers', phoneNumbersInput.value);
+                localStorage.setItem('drawnNumbers', JSON.stringify(drawnNumbers));
+                
                 // 播放提示音
                 playDrawSound();
                 
@@ -754,15 +759,31 @@
         
         // 重置
         function resetAll() {
-            // 保留手机尾号列表，移除已经抽过的号码
-            if (drawnNumbers.length > 0) {
-                const currentNumbers = parsePhoneNumbers(phoneNumbersInput.value);
-                const remainingNumbers = currentNumbers.filter(num => !drawnNumbers.includes(num));
-                phoneNumbersInput.value = remainingNumbers.join('\n');
-                
-                // 清空已抽过的号码列表
-                drawnNumbers = [];
-            }
+            // 清空localStorage中的数据
+            localStorage.removeItem('phoneNumbers');
+            localStorage.removeItem('drawnNumbers');
+            
+            // 重置手机尾号列表为默认值
+            const defaultNumbers = [
+                "1234", "5678", "9012", "3456", "7890",
+                "2345", "6789", "0123", "4567", "8901",
+                "1111", "2222", "3333", "4444", "5555",
+                "6666", "7777", "8888", "9999", "0000",
+                "1357", "2468", "1593", "2684", "3579",
+                "1470", "2580", "3690", "4561", "7892",
+                "3210", "6543", "9876", "3141", "5926",
+                "5358", "9793", "2358", "1618", "2718",
+                "3142", "5772", "1212", "3434", "5656",
+                "7878", "9090", "1313", "2424", "3535",
+                "4646", "5757", "6868", "7979", "8080",
+                "1248", "2496", "3624", "4832", "5040",
+                "6248", "7456", "8664", "9872", "1080",
+                "2160", "3240", "4320", "5400", "6480"
+            ];
+            phoneNumbersInput.value = defaultNumbers.join('\n');
+            
+            // 清空已抽过的号码列表
+            drawnNumbers = [];
             
             // 重置抽奖状态
             drawCountInput.value = 30;
@@ -854,6 +875,8 @@
         
         // 页面加载时初始化
         window.addEventListener('load', () => {
+            // 从localStorage读取保存的号码列表，如果没有则使用默认值
+            const savedNumbers = localStorage.getItem('phoneNumbers');
             const defaultNumbers = [
                 // 示例号码：用户可以在这里添加/修改所有号码
                 "1234", "5678", "9012", "3456", "7890",
@@ -872,8 +895,8 @@
                 "2160", "3240", "4320", "5400", "6480"
             ];
             
-            // 只使用用户定义的号码，不自动生成
-            phoneNumbersInput.value = defaultNumbers.join('\n');
+            // 使用保存的号码或默认号码
+            phoneNumbersInput.value = savedNumbers || defaultNumbers.join('\n');
             
             updateStats();
             
