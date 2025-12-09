@@ -212,12 +212,7 @@
             color: #80deea;
         }
         
-        #resultCount {
-            font-size: 1.2rem;
-            background-color: rgba(0, 229, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-        }
+        /* 已移除结果数量显示样式 */
         
         .result-container {
             flex: 1;
@@ -250,6 +245,39 @@
             transform: scale(0.5);
             position: relative;
             overflow: hidden;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        
+        /* 手机图标样式 */
+        .phone-icon {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+        
+        /* 数字文本样式 */
+        .number-text {
+            font-size: 1.3em;
+            font-weight: bold;
+            transition: transform 0.1s ease, color 0.1s ease;
+        }
+        
+        /* 数字滚动动画 */
+        .result-number:not(.final-result) .number-text {
+            animation: roll 0.1s linear infinite;
+        }
+        
+        /* 最终结果高亮效果 */
+        .result-number.final-result {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(255, 107, 107, 0.4);
+        }
+        
+        /* 数字滚动动画 */
+        @keyframes roll {
+            0% { transform: translateY(0); opacity: 1; }
+            50% { transform: translateY(-2px); opacity: 0.8; }
+            100% { transform: translateY(2px); opacity: 1; }
         }
         
         .result-number::before {
@@ -435,7 +463,6 @@
             <div class="result-section">
                 <div class="result-header">
                     <h2>抽奖结果</h2>
-                    <div id="resultCount">已抽取: <span id="drawnCount">0</span> 个尾号</div>
                 </div>
                 <div class="result-container" id="resultContainer">
                     <!-- 抽奖结果将在这里显示 -->
@@ -444,6 +471,7 @@
                 
                 <div class="button-section">
                     <button id="drawButton">🎯 开始抽奖</button>
+                    <button id="stopButton" disabled>🛑 停止抽奖</button>
                 </div>
             </div>
         </div>
@@ -468,9 +496,10 @@
         const drawCountInput = document.getElementById('drawCount');
         const excludeNumbersInput = document.getElementById('excludeNumbers');
         const drawButton = document.getElementById('drawButton');
+        const stopButton = document.getElementById('stopButton');
         const resetButton = document.getElementById('resetButton');
         const resultContainer = document.getElementById('resultContainer');
-        const drawnCountElement = document.getElementById('drawnCount');
+        // 已移除抽取数量显示元素
         const historyContainer = document.getElementById('historyContainer');
         const validCountElement = document.getElementById('validCount');
         const duplicateCountElement = document.getElementById('duplicateCount');
@@ -480,6 +509,11 @@
         // 从localStorage读取数据，如果没有则使用默认值
         let drawnNumbers = JSON.parse(localStorage.getItem('drawnNumbers')) || [];
         let allPhoneNumbers = [];
+        
+        // 抽奖滚动相关变量
+        let isDrawing = false;
+        let drawInterval = null;
+        let currentResults = [];
         
         // 解析输入的手机尾号
         function parsePhoneNumbers(input) {
@@ -585,7 +619,7 @@
             
             if (results.length === 0) {
                 resultContainer.innerHTML = '<div class="empty-result">等待抽奖...</div>';
-                drawnCountElement.textContent = '0';
+                // 已移除抽取数量显示
                 return;
             }
             
@@ -613,7 +647,7 @@
                 resultContainer.appendChild(numberElement);
             });
             
-            drawnCountElement.textContent = results.length;
+            // 已移除抽取数量显示
         }
         
         // 添加历史记录
@@ -678,58 +712,131 @@
             
             console.log('验证通过，有效尾号数量:', validNumbers.length, '抽取数量:', m);
             
-            // 显示加载状态
+            // 显示抽奖状态
             drawButton.textContent = '抽奖中...';
             drawButton.disabled = true;
+            stopButton.disabled = false;
             
-            // 模拟抽奖过程
-            setTimeout(() => {
-                console.log('开始抽奖计算');
-                const results = drawRandomNumbers(validNumbers, m);
-                
-                console.log('抽奖结果:', results);
-                
-                if (results.length === 0) {
-                    console.log('抽奖结果为空');
-                    drawButton.textContent = '🎯 开始抽奖';
-                    drawButton.disabled = false;
-                    return;
-                }
-                
-                console.log('显示抽奖结果');
-                displayResults(results);
-                
-                console.log('添加历史记录');
-                addToHistory(validNumbers.length, m, results);
-                
-                // 将本次抽中的号码添加到已抽过的号码列表
-                drawnNumbers.push(...results);
-                
-                // 从手机尾号列表中删除已抽中的号码
-                const currentNumbers = parsePhoneNumbers(phoneNumbersInput.value);
-                const remainingNumbers = currentNumbers.filter(num => !results.includes(num));
-                phoneNumbersInput.value = remainingNumbers.join('\n');
-                
-                // 保存更新后的号码列表和已抽奖号码到localStorage
-                localStorage.setItem('phoneNumbers', phoneNumbersInput.value);
-                localStorage.setItem('drawnNumbers', JSON.stringify(drawnNumbers));
-                
-                // 播放提示音
-                playDrawSound();
-                
-                // 更新统计信息
-                updateStats();
-                
-                // 抽奖结束后自动导出历史记录
-                setTimeout(() => {
-                    exportHistory();
-                }, 500);
-                
-                // 抽奖结束后恢复按钮状态，允许再次抽奖
+            isDrawing = true;
+            
+            // 去重并排除指定尾号
+            let uniqueNumbers = [...new Set(validNumbers)];
+            const excludeNumbers = parseExcludeNumbers();
+            uniqueNumbers = uniqueNumbers.filter(num => !excludeNumbers.includes(num));
+            
+            if (m > uniqueNumbers.length) {
+                alert(`排除指定尾号后，可用尾号数量(${uniqueNumbers.length})不足，无法抽取${m}个尾号`);
                 drawButton.textContent = '🎯 开始抽奖';
                 drawButton.disabled = false;
-            }, 800);
+                stopButton.disabled = true;
+                return;
+            }
+            
+            // 生成最终结果（但不立即显示）
+            const finalResults = drawRandomNumbers(validNumbers, m);
+            currentResults = finalResults;
+            
+            // 创建滚动容器
+            resultContainer.innerHTML = '';
+            // 已移除抽取数量显示
+            
+            // 创建所有号码元素
+            const numberElements = [];
+            for (let i = 0; i < m; i++) {
+                const numberElement = document.createElement('div');
+                numberElement.className = 'result-number';
+                numberElement.style.animationDelay = `${i * 0.1}s`;
+                
+                // 添加手机图标
+                const phoneIcon = document.createElement('div');
+                phoneIcon.className = 'phone-icon';
+                phoneIcon.textContent = '📱';
+                
+                // 添加尾号
+                const numberText = document.createElement('div');
+                numberText.className = 'number-text';
+                numberText.textContent = '----';
+                
+                numberElement.appendChild(phoneIcon);
+                numberElement.appendChild(numberText);
+                resultContainer.appendChild(numberElement);
+                numberElements.push(numberElement);
+            }
+            
+            // 开始数字滚动效果
+            drawInterval = setInterval(() => {
+                // 为每个号码独立生成随机数字
+                numberElements.forEach((element, index) => {
+                    // 从可用号码中随机选择一个
+                    const randomIndex = Math.floor(Math.random() * uniqueNumbers.length);
+                    const numberText = element.querySelector('.number-text');
+                    if (numberText) {
+                        numberText.textContent = uniqueNumbers[randomIndex];
+                    }
+                });
+            }, 100);
         }
+        
+        // 停止抽奖
+        function stopDraw() {
+        if (!isDrawing) return;
+        
+        console.log('停止抽奖');
+        
+        // 清除定时器
+        clearInterval(drawInterval);
+        drawInterval = null;
+        isDrawing = false;
+        
+        // 显示最终结果
+        const finalResults = currentResults;
+        console.log('最终抽奖结果:', finalResults);
+        
+        // 直接更新现有元素显示最终结果，避免重新创建
+        const numberElements = resultContainer.querySelectorAll('.result-number');
+        finalResults.forEach((number, index) => {
+            if (index < numberElements.length) {
+                const numberText = numberElements[index].querySelector('.number-text');
+                if (numberText) {
+                    numberText.textContent = number;
+                    numberElements[index].classList.add('final-result');
+                }
+            }
+        });
+        
+        // 添加历史记录
+        const validNumbers = updateStats();
+        const m = parseInt(drawCountInput.value);
+        addToHistory(validNumbers.length, m, finalResults);
+        
+        // 将本次抽中的号码添加到已抽过的号码列表
+        drawnNumbers.push(...finalResults);
+        
+        // 从手机尾号列表中删除已抽中的号码
+        const currentNumbers = parsePhoneNumbers(phoneNumbersInput.value);
+        const remainingNumbers = currentNumbers.filter(num => !finalResults.includes(num));
+        phoneNumbersInput.value = remainingNumbers.join('\n');
+        
+        // 保存更新后的号码列表和已抽奖号码到localStorage
+        localStorage.setItem('phoneNumbers', phoneNumbersInput.value);
+        localStorage.setItem('drawnNumbers', JSON.stringify(drawnNumbers));
+        
+        // 播放提示音
+        playDrawSound();
+        
+        // 更新统计信息
+        updateStats();
+        
+        // 抽奖结束后自动导出历史记录
+        setTimeout(() => {
+            exportHistory();
+        }, 500);
+        
+        // 恢复按钮状态
+        drawButton.textContent = '🎯 开始抽奖';
+        drawButton.disabled = false;
+        stopButton.disabled = true;
+    }
         
         // 播放抽奖音效
         function playDrawSound() {
@@ -756,48 +863,7 @@
                 console.log("音频API不可用");
             }
         }
-        
-        // 重置
-        // function resetAll() {
-        //     // 清空localStorage中的数据
-        //     localStorage.removeItem('phoneNumbers');
-        //     localStorage.removeItem('drawnNumbers');
-            
-        //     // 重置手机尾号列表为默认值
-        //     const defaultNumbers = [
-        //         "1234", "5678", "9012", "3456", "7890",
-        //         "2345", "6789", "0123", "4567", "8901",
-        //         "1111", "2222", "3333", "4444", "5555",
-        //         "6666", "7777", "8888", "9999", "0000",
-        //         "1357", "2468", "1593", "2684", "3579",
-        //         "1470", "2580", "3690", "4561", "7892",
-        //         "3210", "6543", "9876", "3141", "5926",
-        //         "5358", "9793", "2358", "1618", "2718",
-        //         "3142", "5772", "1212", "3434", "5656",
-        //         "7878", "9090", "1313", "2424", "3535",
-        //         "4646", "5757", "6868", "7979", "8080",
-        //         "1248", "2496", "3624", "4832", "5040",
-        //         "6248", "7456", "8664", "9872", "1080",
-        //         "2160", "3240", "4320", "5400", "6480"
-        //     ];
-        //     phoneNumbersInput.value = defaultNumbers.join('\n');
-            
-        //     // 清空已抽过的号码列表
-        //     drawnNumbers = [];
-            
-        //     // 重置抽奖状态
-        //     drawCountInput.value = 30;
-        //     excludeNumbersInput.value = '';
-        //     resultContainer.innerHTML = '<div class="empty-result">等待抽奖...</div>';
-        //     drawnCountElement.textContent = '0';
-            
-        //     // 重新启用抽奖按钮
-        //     drawButton.textContent = '🎯 开始抽奖';
-        //     drawButton.disabled = false;
-            
-        //     // 更新统计信息
-        //     updateStats();
-        // }
+
         
         // 导出历史记录功能
         function exportHistory() {
@@ -848,6 +914,7 @@
         
         // 事件监听
         drawButton.addEventListener('click', performDraw);
+        stopButton.addEventListener('click', stopDraw);
         
         // 为导出按钮添加事件监听
         const exportHistoryButton = document.getElementById('exportHistoryButton');
